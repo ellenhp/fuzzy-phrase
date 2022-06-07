@@ -1,14 +1,18 @@
-#[cfg(test)] extern crate tempfile;
-#[cfg(test)] extern crate rand;
-#[cfg(test)] extern crate lazy_static;
-#[cfg(test)] extern crate test_utils;
+#[cfg(test)]
+extern crate lazy_static;
+#[cfg(test)]
+extern crate rand;
+#[cfg(test)]
+extern crate tempfile;
+#[cfg(test)]
+extern crate test_utils;
 
 use super::*;
-use glue::fuzz_tests::test_utils::*;
 use glue::fuzz_tests::rand::Rng;
-use std::io::Read;
-use std::fs;
+use glue::fuzz_tests::test_utils::*;
 use itertools;
+use std::fs;
+use std::io::Read;
 
 lazy_static! {
     static ref DIR: tempfile::TempDir = tempfile::tempdir().unwrap();
@@ -54,19 +58,21 @@ fn glue_fuzztest_match() {
         // assigned when it was inserted, so we can use it to map to the final ID later
         let phrase_idx = rng.gen_range(0, PHRASES.len());
         let phrase = PHRASES[phrase_idx];
-        let damaged = get_damaged_phrase(phrase, |w| SET.can_fuzzy_match(w) && w.chars().count() > 2);
+        let damaged =
+            get_damaged_phrase(phrase, |w| SET.can_fuzzy_match(w) && w.chars().count() > 2);
         let results = SET.fuzzy_match_str(&damaged.as_str(), 1, 1, EndingType::NonPrefix);
 
         assert!(results.is_ok());
         if let Ok(res) = results {
-            let matching: Vec<_> = res.iter().filter(
-                |result| itertools::join(&result.phrase, " ").as_str() == phrase
-            ).collect();
+            let matching: Vec<_> = res
+                .iter()
+                .filter(|result| itertools::join(&result.phrase, " ").as_str() == phrase)
+                .collect();
             assert!(matching.len() > 0);
             let expected_id = TMP_TO_FINAL[phrase_idx];
-            assert!(matching.iter().any(
-                |result| result.phrase_id_range == (expected_id, expected_id)
-            ));
+            assert!(matching
+                .iter()
+                .any(|result| result.phrase_id_range == (expected_id, expected_id)));
         }
     }
 }
@@ -78,27 +84,32 @@ fn glue_fuzztest_match_prefix() {
     for _i in 0..500 {
         let phrase_idx = rng.gen_range(0, PHRASES.len());
         let phrase = PHRASES[phrase_idx];
-        let damaged = get_damaged_prefix(phrase, |w| SET.can_fuzzy_match(w) && w.chars().count() > 2);
+        let damaged =
+            get_damaged_prefix(phrase, |w| SET.can_fuzzy_match(w) && w.chars().count() > 2);
         let results = SET.fuzzy_match_str(&damaged.as_str(), 1, 1, EndingType::AnyPrefix);
 
         assert!(results.is_ok());
         if let Ok(res) = results {
-            let prefix_match_results: Vec<_> = res.iter()
+            let prefix_match_results: Vec<_> = res
+                .iter()
                 .filter(|result| phrase.starts_with(itertools::join(&result.phrase, " ").as_str()))
                 .collect();
 
             assert!(prefix_match_results.len() > 0);
 
             let expected_id = TMP_TO_FINAL[phrase_idx];
-            assert!(prefix_match_results.iter().any(|result|
-                expected_id >= result.phrase_id_range.0 && expected_id <= result.phrase_id_range.1
-            ));
+            assert!(prefix_match_results
+                .iter()
+                .any(|result| expected_id >= result.phrase_id_range.0
+                    && expected_id <= result.phrase_id_range.1));
         }
 
-        let wb_results = SET.fuzzy_match_str(&damaged.as_str(), 1, 1, EndingType::WordBoundaryPrefix);
+        let wb_results =
+            SET.fuzzy_match_str(&damaged.as_str(), 1, 1, EndingType::WordBoundaryPrefix);
         assert!(wb_results.is_ok());
         if let Ok(res) = wb_results {
-            let prefix_match_results: Vec<_> = res.iter()
+            let prefix_match_results: Vec<_> = res
+                .iter()
                 .filter(|result| phrase.starts_with(itertools::join(&result.phrase, " ").as_str()))
                 .collect();
             // if the last word is complete, we should definitely match as above; if not, maybe maybe not
@@ -107,7 +118,10 @@ fn glue_fuzztest_match_prefix() {
             if &phrase.split(' ').nth(words.len() - 1).unwrap() == last_word {
                 assert!(prefix_match_results.len() > 0);
             } else {
-                assert!(prefix_match_results.iter().all(|result| result.phrase.last().unwrap() == last_word || result.edit_distance > 0));
+                assert!(prefix_match_results
+                    .iter()
+                    .all(|result| result.phrase.last().unwrap() == last_word
+                        || result.edit_distance > 0));
             }
         }
     }
@@ -116,13 +130,20 @@ fn glue_fuzztest_match_prefix() {
 #[test]
 #[ignore]
 fn glue_fuzztest_windowed_multi_equivalent() {
-    let cities: Vec<&str> = include_str!("../../benches/data/phrase_test_cities.txt").trim().split("\n").collect();
-    let states: Vec<&str> = include_str!("../../benches/data/phrase_test_states.txt").trim().split("\n").collect();
+    let cities: Vec<&str> = include_str!("../../benches/data/phrase_test_cities.txt")
+        .trim()
+        .split("\n")
+        .collect();
+    let states: Vec<&str> = include_str!("../../benches/data/phrase_test_states.txt")
+        .trim()
+        .split("\n")
+        .collect();
     let mut rng = rand::thread_rng();
     let mut augmented_phrases: Vec<String> = Vec::with_capacity(1000);
     for _i in 0..1000 {
         let phrase = rng.choose(&PHRASES).unwrap();
-        let damaged = get_damaged_phrase(phrase, |w| SET.can_fuzzy_match(w) && w.chars().count() > 2);
+        let damaged =
+            get_damaged_phrase(phrase, |w| SET.can_fuzzy_match(w) && w.chars().count() > 2);
         let zip: u32 = rng.gen_range(10000, 99999);
 
         // make a string with the components in random order
@@ -130,7 +151,7 @@ fn glue_fuzztest_windowed_multi_equivalent() {
             damaged,
             rng.choose(&cities).unwrap().to_string(),
             rng.choose(&states).unwrap().to_string(),
-            zip.to_string()
+            zip.to_string(),
         ];
         rng.shuffle(augmented_vec.as_mut_slice());
         let augmented = augmented_vec.join(" ");
@@ -147,7 +168,13 @@ fn glue_fuzztest_windowed_multi_equivalent() {
                 variant_starts.push(start);
             }
         }
-        let individual_match_result = variants.iter().map(|v| SET.fuzzy_match(v.0.as_slice(), 1, 1, EndingType::NonPrefix).unwrap()).collect::<Vec<_>>();
+        let individual_match_result = variants
+            .iter()
+            .map(|v| {
+                SET.fuzzy_match(v.0.as_slice(), 1, 1, EndingType::NonPrefix)
+                    .unwrap()
+            })
+            .collect::<Vec<_>>();
         let multi_match_result = SET.fuzzy_match_multi(variants.as_slice(), 1, 1).unwrap();
 
         // check if the multi match results and the one-by-one match results are identical
@@ -156,7 +183,9 @@ fn glue_fuzztest_windowed_multi_equivalent() {
         // to make sure the windowed match and multi windowed match give the same results, we need
         // to reformat the multi-match results to look like windowed match results based on the
         // start position and length of each variant
-        let mut windowed_match_result = SET.fuzzy_match_windows(tokens.as_slice(), 1, 1, EndingType::NonPrefix).unwrap();
+        let mut windowed_match_result = SET
+            .fuzzy_match_windows(tokens.as_slice(), 1, 1, EndingType::NonPrefix)
+            .unwrap();
         let mut emulated_windowed_match_result: Vec<FuzzyWindowResult> = Vec::new();
         for i in 0..multi_match_result.len() {
             for result in &multi_match_result[i] {
@@ -165,7 +194,7 @@ fn glue_fuzztest_windowed_multi_equivalent() {
                     edit_distance: result.edit_distance,
                     start_position: variant_starts[i],
                     ending_type: EndingType::NonPrefix,
-                    phrase_id_range: result.phrase_id_range
+                    phrase_id_range: result.phrase_id_range,
                 });
             }
         }
@@ -180,13 +209,20 @@ fn glue_fuzztest_windowed_multi_equivalent() {
 #[test]
 #[ignore]
 fn glue_fuzztest_windowed_multi_equivalent_prefix() {
-    let cities: Vec<&str> = include_str!("../../benches/data/phrase_test_cities.txt").trim().split("\n").collect();
-    let states: Vec<&str> = include_str!("../../benches/data/phrase_test_states.txt").trim().split("\n").collect();
+    let cities: Vec<&str> = include_str!("../../benches/data/phrase_test_cities.txt")
+        .trim()
+        .split("\n")
+        .collect();
+    let states: Vec<&str> = include_str!("../../benches/data/phrase_test_states.txt")
+        .trim()
+        .split("\n")
+        .collect();
     let mut rng = rand::thread_rng();
     let mut augmented_phrases: Vec<String> = Vec::with_capacity(1000);
     for _i in 0..100 {
         let phrase = rng.choose(&PHRASES).unwrap();
-        let damaged = get_damaged_phrase(phrase, |w| SET.can_fuzzy_match(w) && w.chars().count() > 2);
+        let damaged =
+            get_damaged_phrase(phrase, |w| SET.can_fuzzy_match(w) && w.chars().count() > 2);
         let zip: u32 = rng.gen_range(10000, 99999);
 
         // make a string with the components in random order
@@ -194,7 +230,7 @@ fn glue_fuzztest_windowed_multi_equivalent_prefix() {
             damaged,
             rng.choose(&cities).unwrap().to_string(),
             rng.choose(&states).unwrap().to_string(),
-            zip.to_string()
+            zip.to_string(),
         ];
         rng.shuffle(augmented_vec.as_mut_slice());
         let augmented = augmented_vec.join(" ");
@@ -216,9 +252,10 @@ fn glue_fuzztest_windowed_multi_equivalent_prefix() {
                 variant_starts.push(start);
             }
         }
-        let individual_match_result = variants.iter().map(
-            |v| SET.fuzzy_match(v.0.as_slice(), 1, 1, v.1).unwrap()
-        ).collect::<Vec<_>>();
+        let individual_match_result = variants
+            .iter()
+            .map(|v| SET.fuzzy_match(v.0.as_slice(), 1, 1, v.1).unwrap())
+            .collect::<Vec<_>>();
         let multi_match_result = SET.fuzzy_match_multi(variants.as_slice(), 1, 1).unwrap();
 
         // check if the multi match results and the one-by-one match results are identical
@@ -227,7 +264,9 @@ fn glue_fuzztest_windowed_multi_equivalent_prefix() {
         // to make sure the windowed match and multi windowed match give the same results, we need
         // to reformat the multi-match results to look like windowed match results based on the
         // start position and length of each variant
-        let mut windowed_match_result = SET.fuzzy_match_windows(tokens.as_slice(), 1, 1, EndingType::AnyPrefix).unwrap();
+        let mut windowed_match_result = SET
+            .fuzzy_match_windows(tokens.as_slice(), 1, 1, EndingType::AnyPrefix)
+            .unwrap();
         let mut emulated_windowed_match_result: Vec<FuzzyWindowResult> = Vec::new();
         for i in 0..multi_match_result.len() {
             for result in &multi_match_result[i] {
@@ -236,7 +275,7 @@ fn glue_fuzztest_windowed_multi_equivalent_prefix() {
                     edit_distance: result.edit_distance,
                     start_position: variant_starts[i],
                     ending_type: result.ending_type,
-                    phrase_id_range: result.phrase_id_range
+                    phrase_id_range: result.phrase_id_range,
                 });
             }
         }

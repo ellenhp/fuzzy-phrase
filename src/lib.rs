@@ -1,7 +1,7 @@
+extern crate byteorder;
 extern crate fst;
 extern crate itertools;
 extern crate memmap;
-extern crate byteorder;
 extern crate regex;
 extern crate rustc_hash;
 
@@ -24,8 +24,8 @@ pub use fuzzy::FuzzyMapBuilder;
 
 pub mod phrase;
 
+pub use phrase::query::QueryWord;
 pub use phrase::PhraseSet;
 pub use phrase::PhraseSetBuilder;
-pub use phrase::query::QueryWord;
 
 pub mod glue;

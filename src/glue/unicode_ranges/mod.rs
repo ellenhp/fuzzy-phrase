@@ -6,9 +6,9 @@ pub use self::tables::Script;
 use std::collections::HashMap;
 
 #[cfg(test)]
-use regex::Regex;
-#[cfg(test)]
 use lazy_static;
+#[cfg(test)]
+use regex::Regex;
 
 // I want a few things here from the underlying tables:
 // - a map from each script (enum type) to a list of relevant ranges
@@ -101,7 +101,11 @@ fn unicode_build() {
 fn unicode_get_range() {
     let r_latin = Regex::new(&get_pattern_for_scripts(&vec![Script::Latin])).unwrap();
     let r_greek = Regex::new(&get_pattern_for_scripts(&vec![Script::Greek])).unwrap();
-    let r_both = Regex::new(&get_pattern_for_scripts(&vec![Script::Latin, Script::Greek])).unwrap();
+    let r_both = Regex::new(&get_pattern_for_scripts(&vec![
+        Script::Latin,
+        Script::Greek,
+    ]))
+    .unwrap();
 
     let t_latin = "abcde";
     let t_greek = "καθέδρα";

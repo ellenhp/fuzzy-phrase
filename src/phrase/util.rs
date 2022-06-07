@@ -1,8 +1,8 @@
-use std::io::Cursor;
-use byteorder::{BigEndian, WriteBytesExt, ReadBytesExt};
-use std::fmt;
-use std::error;
 use super::WordKey;
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use std::error;
+use std::fmt;
+use std::io::Cursor;
 
 pub fn chop_int(num: u32) -> Vec<u8> {
     let mut wtr = vec![];
@@ -39,7 +39,7 @@ pub fn key_to_word_ids(key: &[u8]) -> Vec<u32> {
     let mut phrase: Vec<u32> = vec![];
     let mut i = 0;
     while i < (key.len() - 2) {
-        let word = &key[i..i+3];
+        let word = &key[i..i + 3];
         phrase.push(three_byte_decode(&word));
         i += 3;
     }
@@ -48,17 +48,18 @@ pub fn key_to_word_ids(key: &[u8]) -> Vec<u32> {
 
 #[derive(Debug, Clone)]
 pub struct PhraseSetError {
-    details: String
+    details: String,
 }
 
 impl PhraseSetError {
     pub fn new(msg: &str) -> PhraseSetError {
-        PhraseSetError{details: msg.to_string()}
+        PhraseSetError {
+            details: msg.to_string(),
+        }
     }
 }
 
 impl fmt::Display for PhraseSetError {
-
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.details)
     }
@@ -77,21 +78,14 @@ mod tests {
     fn chop_smallest_int_to_bytes() {
         let n: u32 = u32::min_value();
         let chopped: Vec<u8> = chop_int(n);
-        assert_eq!(
-            vec![0u8, 0u8, 0u8, 0u8],
-            chopped
-        );
-
+        assert_eq!(vec![0u8, 0u8, 0u8, 0u8], chopped);
     }
 
     #[test]
     fn chop_largest_int_to_bytes() {
         let n: u32 = u32::max_value();
         let chopped: Vec<u8> = chop_int(n);
-        assert_eq!(
-            vec![255u8, 255u8, 255u8, 255u8],
-            chopped
-        );
+        assert_eq!(vec![255u8, 255u8, 255u8, 255u8], chopped);
     }
 
     #[test]
@@ -99,10 +93,7 @@ mod tests {
         // first value larger than u16::max_value(), aka 2**16
         let n: u32 = 65_537;
         let chopped: Vec<u8> = chop_int(n);
-        assert_eq!(
-            vec![0u8, 1u8, 0u8, 1u8],
-            chopped
-        );
+        assert_eq!(vec![0u8, 1u8, 0u8, 1u8], chopped);
     }
 
     #[test]
@@ -110,10 +101,7 @@ mod tests {
         // the number we're using is arbitrary.
         let n: u32 = 61_528;
         let three_bytes: WordKey = three_byte_encode(n);
-        assert_eq!(
-            vec![ 0u8, 240u8, 88u8],
-            three_bytes
-        );
+        assert_eq!(vec![0u8, 240u8, 88u8], three_bytes);
     }
 
     #[test]
@@ -122,10 +110,7 @@ mod tests {
         // us-address, so gives us an idea of the cardinality we're dealing with.
         let n: u32 = 561_528;
         let three_bytes: WordKey = three_byte_encode(n);
-        assert_eq!(
-            vec![ 8u8, 145u8, 120u8],
-            three_bytes
-        );
+        assert_eq!(vec![8u8, 145u8, 120u8], three_bytes);
     }
 
     #[test]
@@ -138,12 +123,9 @@ mod tests {
 
     #[test]
     fn three_bytes_to_large_integer() {
-        let three_bytes: Vec<u8> = vec![ 8u8, 145u8, 120u8];
+        let three_bytes: Vec<u8> = vec![8u8, 145u8, 120u8];
         let n: u32 = three_byte_decode(&three_bytes);
-        assert_eq!(
-            561_528u32,
-            n
-        );
+        assert_eq!(561_528u32, n);
     }
 
     #[test]
@@ -152,9 +134,9 @@ mod tests {
         let key = word_ids_to_key(&word_ids);
         assert_eq!(
             vec![
-                0u8, 240u8, 88u8,    // 61_528
-                8u8, 145u8, 120u8,   // 561_528
-                0u8, 0u8,   1u8      // 1
+                0u8, 240u8, 88u8, // 61_528
+                8u8, 145u8, 120u8, // 561_528
+                0u8, 0u8, 1u8 // 1
             ],
             key
         );
@@ -162,16 +144,12 @@ mod tests {
 
     #[test]
     fn convert_key_to_word_ids() {
-        let key =vec![
-            0u8, 240u8, 88u8,    // 61_528
-            8u8, 145u8, 120u8,   // 561_528
-            0u8, 0u8,   1u8      // 1
+        let key = vec![
+            0u8, 240u8, 88u8, // 61_528
+            8u8, 145u8, 120u8, // 561_528
+            0u8, 0u8, 1u8, // 1
         ];
         let word_ids = key_to_word_ids(&key);
-        assert_eq!(
-            vec![61_528_u32, 561_528u32, 1u32],
-            word_ids
-        );
+        assert_eq!(vec![61_528_u32, 561_528u32, 1u32], word_ids);
     }
-
 }

@@ -19,32 +19,37 @@ pub enum QueryWord {
     },
 }
 
-impl QueryWord
-{
-
-    pub fn new_full(id:u32, edit_distance:u8) -> QueryWord {
+impl QueryWord {
+    pub fn new_full(id: u32, edit_distance: u8) -> QueryWord {
         let key: [u8; 3] = util::three_byte_encode(id);
-        QueryWord::Full { id, edit_distance, key }
+        QueryWord::Full {
+            id,
+            edit_distance,
+            key,
+        }
     }
 
     pub fn new_prefix(id_range: (u32, u32)) -> QueryWord {
         let min_key: [u8; 3] = util::three_byte_encode(id_range.0);
         let max_key: [u8; 3] = util::three_byte_encode(id_range.1);
         let key_range = (min_key, max_key);
-        QueryWord::Prefix { id_range, key_range }
+        QueryWord::Prefix {
+            id_range,
+            key_range,
+        }
     }
 
-    pub fn to_string<'a, T:Fn(u32) -> &'a str>(&self, id_to_string: T) -> String {
+    pub fn to_string<'a, T: Fn(u32) -> &'a str>(&self, id_to_string: T) -> String {
         match &self {
-            &QueryWord::Full {id, ..} => {
+            &QueryWord::Full { id, .. } => {
                 let s = format!("{}", id_to_string(*id));
-                return s
-            },
-            &QueryWord::Prefix {id_range, ..} => {
+                return s;
+            }
+            &QueryWord::Prefix { id_range, .. } => {
                 let s_start: &str = id_to_string(id_range.0);
                 let s_end: &str = id_to_string(id_range.1);
                 let s = format!("{}..{}", s_start, s_end);
-                return s
+                return s;
             }
         }
     }
@@ -67,7 +72,7 @@ mod tests {
 
     #[test]
     fn query_word_partial_eq() {
-        let word =  QueryWord::new_full(1u32, 0);
+        let word = QueryWord::new_full(1u32, 0);
         let matching_word = QueryWord::new_full(1u32, 0);
         let nonmatching_word = QueryWord::new_full(2u32, 0);
 

@@ -35,12 +35,19 @@ pub fn multi_modified_damlev<T: AsRef<str>>(target: T, sources: &[T]) -> Vec<u32
 /// you're guaranteed a result that's greater than your hinted max, but it might not be the actual
 /// distance.
 
-pub fn multi_modified_damlev_hint<T: AsRef<str>>(target: T, sources: &[T], max_hint: u32) -> Vec<u32> {
+pub fn multi_modified_damlev_hint<T: AsRef<str>>(
+    target: T,
+    sources: &[T],
+    max_hint: u32,
+) -> Vec<u32> {
     let t_chars: Vec<char> = target.as_ref().chars().collect();
     let t_len = t_chars.len();
 
     if t_len == 0 {
-        return sources.iter().map(|s| s.as_ref().chars().count() as u32).collect();
+        return sources
+            .iter()
+            .map(|s| s.as_ref().chars().count() as u32)
+            .collect();
     }
 
     let width = t_len + 1;
@@ -70,16 +77,24 @@ pub fn multi_modified_damlev_hint<T: AsRef<str>>(target: T, sources: &[T], max_h
             let mut row_min = u32::max_value();
             cur_row[0] = i as u32;
             for j in 1..(t_len + 1) {
-                let cost = if s_chars[i - 1] == t_chars[j - 1] { 0 } else { 1 };
+                let cost = if s_chars[i - 1] == t_chars[j - 1] {
+                    0
+                } else {
+                    1
+                };
                 let mut current = min(
-                    prev_row[j] + 1,           // deletion
+                    prev_row[j] + 1, // deletion
                     min(
-                        cur_row[j - 1] + 1,    // insertion
-                        prev_row[j - 1] + cost // substitution
-                    )
+                        cur_row[j - 1] + 1,     // insertion
+                        prev_row[j - 1] + cost, // substitution
+                    ),
                 );
-                if i > 1 && j > 1 && s_chars[i-1] == t_chars[j-2] && s_chars[i-2] == t_chars[j-1] {
-                    current = min(current, prev2_row[j-2] + cost);  // transposition
+                if i > 1
+                    && j > 1
+                    && s_chars[i - 1] == t_chars[j - 2]
+                    && s_chars[i - 2] == t_chars[j - 1]
+                {
+                    current = min(current, prev2_row[j - 2] + cost); // transposition
                 }
                 if current < row_min {
                     row_min = current;
@@ -169,7 +184,10 @@ mod tests {
 
     #[test]
     fn mmd_many_transpositions() {
-        assert_eq!(4, multi_modified_damlev("abcdefghijkl", &["bacedfgihjlk"])[0]);
+        assert_eq!(
+            4,
+            multi_modified_damlev("abcdefghijkl", &["bacedfgihjlk"])[0]
+        );
     }
 
     #[test]
@@ -199,15 +217,25 @@ mod tests {
     fn mmd_multi_dist() {
         assert_eq!(
             vec![0, 1, 2, 3, 6, 7],
-            multi_modified_damlev("damerau", &["damerau", "domerau", "domera", "aderua", "aderuaxyz", ""])
+            multi_modified_damlev(
+                "damerau",
+                &["damerau", "domerau", "domera", "aderua", "aderuaxyz", ""]
+            )
         );
     }
 
     #[test]
     fn mmd_multi_hint() {
         let max_hint = 1;
-        let unhinted = multi_modified_damlev("damerau", &["damerau", "domerau", "domera", "aderua", "aderuaxyz", ""]);
-        let hinted = multi_modified_damlev_hint("damerau", &["damerau", "domerau", "domera", "aderua", "aderuaxyz", ""], 1);
+        let unhinted = multi_modified_damlev(
+            "damerau",
+            &["damerau", "domerau", "domera", "aderua", "aderuaxyz", ""],
+        );
+        let hinted = multi_modified_damlev_hint(
+            "damerau",
+            &["damerau", "domerau", "domera", "aderua", "aderuaxyz", ""],
+            1,
+        );
         for i in 0..unhinted.len() {
             if unhinted[i] <= max_hint {
                 assert_eq!(unhinted[i], hinted[i]);

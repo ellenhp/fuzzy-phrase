@@ -4,7 +4,8 @@ mod boilerplate;
 pub use self::boilerplate::PrefixSet;
 pub use self::boilerplate::PrefixSetBuilder;
 
-#[cfg(test)] mod tests;
+#[cfg(test)]
+mod tests;
 
 impl PrefixSet {
     pub fn lookup<B: AsRef<[u8]>>(&self, key: B) -> PrefixSetLookupResult {
@@ -21,7 +22,11 @@ impl PrefixSet {
                 }
             }
         }
-        PrefixSetLookupResult::Found { fst, node, output_so_far: out }
+        PrefixSetLookupResult::Found {
+            fst,
+            node,
+            output_so_far: out,
+        }
     }
 
     pub fn get_by_id(&self, id: raw::Output) -> Option<Vec<u8>> {
@@ -68,28 +73,36 @@ impl PrefixSet {
 
 pub enum PrefixSetLookupResult<'a> {
     NotFound,
-    Found { fst: &'a raw::Fst, node: raw::Node<'a>, output_so_far: raw::Output }
+    Found {
+        fst: &'a raw::Fst,
+        node: raw::Node<'a>,
+        output_so_far: raw::Output,
+    },
 }
 
 impl<'a> PrefixSetLookupResult<'a> {
     pub fn found(&self) -> bool {
         match *self {
             PrefixSetLookupResult::NotFound => false,
-            PrefixSetLookupResult::Found {..} => true
+            PrefixSetLookupResult::Found { .. } => true,
         }
     }
 
     pub fn found_final(&self) -> bool {
         match *self {
             PrefixSetLookupResult::NotFound => false,
-            PrefixSetLookupResult::Found { node, .. } => node.is_final()
+            PrefixSetLookupResult::Found { node, .. } => node.is_final(),
         }
     }
 
     pub fn id(&self) -> Option<raw::Output> {
         match *self {
             PrefixSetLookupResult::NotFound => None,
-            PrefixSetLookupResult::Found { node, output_so_far, .. } => {
+            PrefixSetLookupResult::Found {
+                node,
+                output_so_far,
+                ..
+            } => {
                 if node.is_final() {
                     Some(output_so_far.cat(node.final_output()))
                 } else {
@@ -102,7 +115,11 @@ impl<'a> PrefixSetLookupResult<'a> {
     pub fn range(&self) -> Option<(raw::Output, raw::Output)> {
         match *self {
             PrefixSetLookupResult::NotFound => None,
-            PrefixSetLookupResult::Found { fst, node, output_so_far } => {
+            PrefixSetLookupResult::Found {
+                fst,
+                node,
+                output_so_far,
+            } => {
                 let mut node: raw::Node = node.to_owned();
                 let mut out: raw::Output = output_so_far.to_owned();
                 let start = out.cat(node.final_output());
@@ -120,7 +137,7 @@ impl<'a> PrefixSetLookupResult<'a> {
     pub fn has_continuations(&self) -> bool {
         match *self {
             PrefixSetLookupResult::NotFound => false,
-            PrefixSetLookupResult::Found { node, .. } => node.len() > 0
+            PrefixSetLookupResult::Found { node, .. } => node.len() > 0,
         }
     }
 }

@@ -4,10 +4,9 @@ use regex;
 pub fn contains_digit_or_pound(word: &str) -> bool {
     // we can operate on bytes because all the characters we're looking for are ASCII, and the
     // utf8 encoding guarantees that no valid ASCII bytes occur inside non-ASCII characters
-    word.as_bytes().iter().any(|b| {
-        (*b >= ('0' as u8) && *b <= ('9' as u8)) ||
-        *b == ('#' as u8)
-    })
+    word.as_bytes()
+        .iter()
+        .any(|b| (*b >= ('0' as u8) && *b <= ('9' as u8)) || *b == ('#' as u8))
 }
 
 #[inline(always)]

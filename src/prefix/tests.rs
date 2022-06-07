@@ -1,8 +1,8 @@
 extern crate lazy_static;
 
-use std::collections::BTreeSet;
 use super::PrefixSet;
 use fst::raw;
+use std::collections::BTreeSet;
 
 lazy_static! {
     static ref DATA: [&'static str; 4] = [
@@ -53,7 +53,10 @@ fn simple_build() {
     words.sort();
 
     let pf = PrefixSet::from_iter(words.iter()).expect("tried to create prefix set");
-    assert_eq!(format!("{:?}", pf), "PrefixSet([(one, 0), (three, 1), (two, 2)])");
+    assert_eq!(
+        format!("{:?}", pf),
+        "PrefixSet([(one, 0), (three, 1), (two, 2)])"
+    );
 }
 
 #[test]
@@ -63,10 +66,16 @@ fn complex_build() {
 
 #[test]
 fn confirm_contents() {
-    assert_eq!(SET.len(), WORDS.len(), "PrefixSet contains the right number of WORDS");
+    assert_eq!(
+        SET.len(),
+        WORDS.len(),
+        "PrefixSet contains the right number of WORDS"
+    );
 
     assert_eq!(
-        SET.stream().into_str_vec().expect("tried to dump to vector"),
+        SET.stream()
+            .into_str_vec()
+            .expect("tried to dump to vector"),
         *WORDS_WITH_IDS,
         "PrefixSet's IDs match the lexicographical IDs of the original data"
     );
@@ -112,15 +121,19 @@ fn contains_prefix() {
             match SET.get_by_id(raw::Output::new(t.1)) {
                 Some(v) => match String::from_utf8(v) {
                     Ok(s) => s == t.0,
-                    _ => false
+                    _ => false,
                 },
-                None => false
+                None => false,
             }
         }),
         "PrefixSet inverse lookups return the expected result"
     );
 
-    let co_subset: Vec<(String, u64)> = WORDS_WITH_IDS.iter().filter(|ref t| t.0.starts_with("Co")).cloned().collect();
+    let co_subset: Vec<(String, u64)> = WORDS_WITH_IDS
+        .iter()
+        .filter(|ref t| t.0.starts_with("Co"))
+        .cloned()
+        .collect();
     let co_range = SET.lookup("Co").range().unwrap();
     assert_eq!(
         (co_range.0.value(), co_range.1.value()),
@@ -157,7 +170,8 @@ fn augmented_contains() {
 #[test]
 fn get_by_id() {
     assert!(
-        SET.get_by_id(raw::Output::new(WORDS.len() as u64)).is_none(),
+        SET.get_by_id(raw::Output::new(WORDS.len() as u64))
+            .is_none(),
         "PrefixSet inverse lookup returns none on out of bounds lookup"
     );
 }

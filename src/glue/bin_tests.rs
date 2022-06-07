@@ -1,8 +1,8 @@
 extern crate lazy_static;
 
-use fst::raw::Output;
 use super::bins::PrefixBin;
-use super::{FuzzyPhraseSetBuilder, FuzzyPhraseSet};
+use super::{FuzzyPhraseSet, FuzzyPhraseSetBuilder};
+use fst::raw::Output;
 
 lazy_static! {
     static ref DIR: tempfile::TempDir = tempfile::tempdir().unwrap();
@@ -77,7 +77,7 @@ fn range_for_prefix(prefix: &str) -> Option<PrefixBin> {
         if phrase.starts_with(prefix) {
             bounds = match bounds {
                 None => Some((i, i)),
-                Some((j, _)) => Some((j, i))
+                Some((j, _)) => Some((j, i)),
             };
         }
     }
@@ -85,7 +85,7 @@ fn range_for_prefix(prefix: &str) -> Option<PrefixBin> {
         prefix: prefix.trim().to_string(),
         first: Output::new(first as u64),
         last: Output::new(last as u64),
-        size: last - first + 1
+        size: last - first + 1,
     })
 }
 
@@ -93,7 +93,10 @@ fn range_for_prefix(prefix: &str) -> Option<PrefixBin> {
 fn unlimited_bins() {
     assert_eq!(
         SET.get_prefix_bins(std::usize::MAX).unwrap(),
-        vec![range_for_prefix("r").unwrap(), range_for_prefix("s").unwrap()]
+        vec![
+            range_for_prefix("r").unwrap(),
+            range_for_prefix("s").unwrap()
+        ]
     );
 }
 

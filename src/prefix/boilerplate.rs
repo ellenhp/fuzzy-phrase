@@ -1,11 +1,11 @@
+use fst::automaton::{AlwaysMatch, Automaton};
+use fst::raw;
+use fst::Error as FstError;
+use fst::Streamer;
 use std::fmt;
 use std::io::prelude::*;
 #[cfg(feature = "mmap")]
 use std::path::Path;
-use fst::Streamer;
-use fst::raw;
-use fst::Error as FstError;
-use fst::automaton::{Automaton, AlwaysMatch};
 
 // pretty much everything in this file is copied from either upstream fst::Set or upstream
 // fst:Map, so it's quarantined in its own file to separate it from stuff we're actually building
@@ -25,7 +25,10 @@ impl PrefixSet {
     }
 
     pub fn from_iter<T, I>(iter: I) -> Result<Self, FstError>
-            where T: AsRef<[u8]>, I: IntoIterator<Item=T> {
+    where
+        T: AsRef<[u8]>,
+        I: IntoIterator<Item = T>,
+    {
         let mut builder = PrefixSetBuilder::memory();
         builder.extend_iter(iter)?;
         PrefixSet::from_bytes(builder.into_inner()?)
@@ -63,18 +66,24 @@ impl fmt::Debug for PrefixSet {
 
 pub struct PrefixSetBuilder<W> {
     builder: raw::Builder<W>,
-    count: u64
+    count: u64,
 }
 
 impl PrefixSetBuilder<Vec<u8>> {
     pub fn memory() -> Self {
-        PrefixSetBuilder { builder: raw::Builder::memory(), count: 0 }
+        PrefixSetBuilder {
+            builder: raw::Builder::memory(),
+            count: 0,
+        }
     }
 }
 
 impl<W: Write> PrefixSetBuilder<W> {
     pub fn new(wtr: W) -> Result<PrefixSetBuilder<W>, FstError> {
-        Ok(PrefixSetBuilder { builder: raw::Builder::new_type(wtr, 0)?, count: 0 })
+        Ok(PrefixSetBuilder {
+            builder: raw::Builder::new_type(wtr, 0)?,
+            count: 0,
+        })
     }
 
     pub fn insert<K: AsRef<[u8]>>(&mut self, key: K) -> Result<(), FstError> {
@@ -85,7 +94,10 @@ impl<W: Write> PrefixSetBuilder<W> {
     }
 
     pub fn extend_iter<T, I>(&mut self, iter: I) -> Result<(), FstError>
-            where T: AsRef<[u8]>, I: IntoIterator<Item=T> {
+    where
+        T: AsRef<[u8]>,
+        I: IntoIterator<Item = T>,
+    {
         for key in iter {
             // likewise, enforce counts
             self.builder.insert(key, self.count)?;
@@ -103,10 +115,12 @@ impl<W: Write> PrefixSetBuilder<W> {
     }
 }
 
-pub struct Stream<'s, A=AlwaysMatch>(raw::Stream<'s, A>) where A: Automaton;
+pub struct Stream<'s, A = AlwaysMatch>(raw::Stream<'s, A>)
+where
+    A: Automaton;
 
 impl<'s, A: Automaton> Stream<'s, A> {
-                #[doc(hidden)]
+    #[doc(hidden)]
     pub fn new(fst_stream: raw::Stream<'s, A>) -> Self {
         Stream(fst_stream)
     }
