@@ -70,7 +70,7 @@ impl Default for FuzzyPhraseSetMetadata {
 }
 
 impl FuzzyPhraseSetBuilder {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Box<Error>> {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         let directory = path.as_ref().to_owned();
 
         if directory.exists() {
@@ -105,7 +105,7 @@ impl FuzzyPhraseSetBuilder {
     pub fn load_word_replacements(
         &mut self,
         word_replacements: Vec<WordReplacement>,
-    ) -> Result<(), Box<Error>> {
+    ) -> Result<(), Box<dyn Error>> {
         if self.phrases.len() > 0 {
             return Err(Box::new(IoError::new(
                 IoErrorKind::InvalidData,
@@ -121,7 +121,7 @@ impl FuzzyPhraseSetBuilder {
         Ok(())
     }
 
-    pub fn insert<T: AsRef<str>>(&mut self, phrase: &[T]) -> Result<u32, Box<Error>> {
+    pub fn insert<T: AsRef<str>>(&mut self, phrase: &[T]) -> Result<u32, Box<dyn Error>> {
         // the strategy here is to take a phrase, look at it word by word, and for any words we've
         // seen before, reuse their temp IDs, otherwise, add new words to our word map and assign them
         // new temp IDs (just autoincrementing in the order we see them) -- later once we've seen all
@@ -150,12 +150,12 @@ impl FuzzyPhraseSetBuilder {
     // convenience method that splits the input string on the space character
     // IT DOES NOT DO PROPER TOKENIZATION; if you need that, use a real tokenizer and call
     // insert directly
-    pub fn insert_str(&mut self, phrase: &str) -> Result<u32, Box<Error>> {
+    pub fn insert_str(&mut self, phrase: &str) -> Result<u32, Box<dyn Error>> {
         let phrase_v: Vec<&str> = phrase.split(' ').collect();
         self.insert(&phrase_v)
     }
 
-    pub fn finish(self) -> Result<Vec<u32>, Box<Error>> {
+    pub fn finish(self) -> Result<Vec<u32>, Box<dyn Error>> {
         // in the future we could make some of this setable from the outside
         let mut metadata = FuzzyPhraseSetMetadata::default();
 
@@ -288,7 +288,7 @@ impl<'a, 'b> PartialEq<FuzzyMatchResult> for FuzzyWindowResult {
 }
 
 impl FuzzyPhraseSet {
-    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, Box<Error>> {
+    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         // the path of a fuzzy phrase set is a directory that has all the subcomponents in it at predictable URLs
         // the prefix graph and phrase graph are each single-file FSTs; the fuzzy graph is multiple files so we
         // pass in a their shared prefix to the fuzzy graph constructor
@@ -340,7 +340,8 @@ impl FuzzyPhraseSet {
         // (id to string), but this turned out to be too slow, so instead we'll just hold
         // an array of all the words in memory, which turns out to be small enough to just do.
         // we can get this by iterating over the prefix graph contents and exploding them into a vector
-        let mut word_list = Vec::<String>::with_capacity(prefix_set.len());
+        // FIXME: This will load the entire thing over the network.
+        let mut word_list = Vec::<String>::with_capacity(prefix_set.len() as usize);
         {
             let mut stream = prefix_set.stream();
             while let Some((word, _id)) = stream.next() {
@@ -407,7 +408,7 @@ impl FuzzyPhraseSet {
         &self,
         phrase: &[T],
         ending_type: EndingType,
-    ) -> Result<bool, Box<Error>> {
+    ) -> Result<bool, Box<dyn Error>> {
         match ending_type {
             EndingType::NonPrefix | EndingType::WordBoundaryPrefix => {
                 // strategy: get each word's ID from the prefix graph (or return false if any are missing)
@@ -466,7 +467,11 @@ impl FuzzyPhraseSet {
     // convenience method that splits the input string on the space character
     // IT DOES NOT DO PROPER TOKENIZATION; if you need that, use a real tokenizer and call
     // contains directly
-    pub fn contains_str(&self, phrase: &str, ending_type: EndingType) -> Result<bool, Box<Error>> {
+    pub fn contains_str(
+        &self,
+        phrase: &str,
+        ending_type: EndingType,
+    ) -> Result<bool, Box<dyn Error>> {
         let phrase_v: Vec<&str> = phrase.split(' ').collect();
         self.contains(&phrase_v, ending_type)
     }
@@ -476,7 +481,7 @@ impl FuzzyPhraseSet {
         &self,
         word: &str,
         edit_distance: u8,
-    ) -> Result<Option<Vec<QueryWord>>, Box<Error>> {
+    ) -> Result<Option<Vec<QueryWord>>, Box<dyn Error>> {
         // check if we actually want to fuzzy-match, if the word is made of the right kind of characters
         // and if it's more than one char long
         if edit_distance > 0 && self.can_fuzzy_match(word) && word.chars().nth(1).is_some() {
@@ -519,7 +524,7 @@ impl FuzzyPhraseSet {
         &self,
         word: &str,
         edit_distance: u8,
-    ) -> Result<Option<Vec<QueryWord>>, Box<Error>> {
+    ) -> Result<Option<Vec<QueryWord>>, Box<dyn Error>> {
         // last word: try both prefix and, if eligible, fuzzy lookup, and return nothing if both fail
         let mut last_variants: Vec<QueryWord> = Vec::new();
 
@@ -597,7 +602,7 @@ impl FuzzyPhraseSet {
         max_word_dist: u8,
         max_phrase_dist: u8,
         ending_type: EndingType,
-    ) -> Result<Vec<FuzzyMatchResult>, Box<Error>> {
+    ) -> Result<Vec<FuzzyMatchResult>, Box<dyn Error>> {
         // strategy: look up each word in the fuzzy graph, and also look up the last one in the prefix graph
         // if the ending type allows for partial words (so, is AnyPrefix), and then construct a vector of
         // vectors representing all the word variants that could reside in each slot in the phrase, and
@@ -708,7 +713,7 @@ impl FuzzyPhraseSet {
         max_word_dist: u8,
         max_phrase_dist: u8,
         ending_type: EndingType,
-    ) -> Result<Vec<FuzzyMatchResult>, Box<Error>> {
+    ) -> Result<Vec<FuzzyMatchResult>, Box<dyn Error>> {
         let phrase_v: Vec<&str> = phrase.split(' ').collect();
         self.fuzzy_match(&phrase_v, max_word_dist, max_phrase_dist, ending_type)
     }
@@ -719,7 +724,7 @@ impl FuzzyPhraseSet {
         max_word_dist: u8,
         max_phrase_dist: u8,
         ending_type: EndingType,
-    ) -> Result<Vec<FuzzyWindowResult>, Box<Error>> {
+    ) -> Result<Vec<FuzzyWindowResult>, Box<dyn Error>> {
         // this is a little different than the regular fuzzy match in that we're considering
         // multiple possible substrings we'll start by trying to fuzzy-match all the words, but
         // some of those will likely fail -- rather than early-returning like in regular fuzzy
@@ -773,7 +778,7 @@ impl FuzzyPhraseSet {
         };
 
         // this block creates an iterator of possible fuzzy matches for each word in phrase
-        let seq: Box<Iterator<Item = Result<Option<Vec<QueryWord>>, Box<Error>>>> =
+        let seq: Box<Iterator<Item = Result<Option<Vec<QueryWord>>, Box<dyn Error>>>> =
             match ending_type {
                 EndingType::AnyPrefix => {
                     // if the phrase ends in an arbitrary prefix (so, final word could be partial)
@@ -933,7 +938,7 @@ impl FuzzyPhraseSet {
         phrases: &[(U, EndingType)],
         max_word_dist: u8,
         max_phrase_dist: u8,
-    ) -> Result<Vec<Vec<FuzzyMatchResult>>, Box<Error>> {
+    ) -> Result<Vec<Vec<FuzzyMatchResult>>, Box<dyn Error>> {
         // This is roughly equivalent to `fuzzy_match_windows` in purpose, but operating under
         // the assumption that the caller will have wanted to make some changes to some of the
         // windows for normalization purposes, such that they don't all fit neatly until a single

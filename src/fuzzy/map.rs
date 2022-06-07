@@ -141,7 +141,7 @@ impl FuzzyMap {
         query: &str,
         edit_distance: u8,
         lookup_fn: F,
-    ) -> Result<Vec<FuzzyMapLookupResult>, Box<Error>>
+    ) -> Result<Vec<FuzzyMapLookupResult>, Box<dyn Error>>
     where
         F: Fn(u32) -> &'a str,
     {
@@ -217,7 +217,7 @@ pub struct FuzzyMapBuilder {
 }
 
 impl FuzzyMapBuilder {
-    pub fn new<P: AsRef<Path>>(path: P, edit_distance: u8) -> Result<Self, Box<Error>> {
+    pub fn new<P: AsRef<Path>>(path: P, edit_distance: u8) -> Result<Self, Box<dyn Error>> {
         let file_start = path.as_ref().to_owned();
         let fst_wtr = BufWriter::new(fs::File::create(file_start.with_extension("fst"))?);
 
@@ -234,7 +234,7 @@ impl FuzzyMapBuilder {
         path: P,
         words: T,
         edit_distance: u8,
-    ) -> Result<(), Box<Error>>
+    ) -> Result<(), Box<dyn Error>>
     where
         T: Iterator<Item = &'a str>,
     {

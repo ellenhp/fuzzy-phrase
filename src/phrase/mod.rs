@@ -1,10 +1,11 @@
 pub mod query;
 pub mod util;
 
+use fst::FakeArrSlice;
 use fst::Ulen;
 use std::io;
 #[cfg(feature = "mmap")]
-use std::path::Path;
+use std::{fs::File, io::Read, path::Path};
 
 use byteorder::{BigEndian, ReadBytesExt};
 use fst;
@@ -765,17 +766,19 @@ impl PhraseSet {
 
     /// Create from a raw byte sequence, which must be written by `PhraseSetBuilder`.
     pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, fst::Error> {
-        Fst::from_bytes(bytes).map(PhraseSet)
+        Fst::new(bytes).map(PhraseSet)
     }
 
     #[cfg(feature = "mmap")]
-    pub unsafe fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, fst::Error> {
-        Fst::from_path(path).map(PhraseSet)
+    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, fst::Error> {
+        let mut buf = vec![];
+        File::open(path).unwrap().read_to_end(&mut buf).unwrap();
+        Fst::new(buf).map(PhraseSet)
     }
 }
 
 impl<'s, 'a> IntoStreamer<'a> for &'s PhraseSet {
-    type Item = (&'a [u8], fst::raw::Output);
+    type Item = (FakeArrSlice<'a>, fst::raw::Output);
     type Into = fst::raw::Stream<'s>;
 
     fn into_stream(self) -> Self::Into {

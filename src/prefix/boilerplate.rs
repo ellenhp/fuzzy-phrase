@@ -1,8 +1,11 @@
 use fst::automaton::{AlwaysMatch, Automaton};
 use fst::raw;
 use fst::Error as FstError;
+use fst::FakeArrSlice;
 use fst::Streamer;
-use std::fmt;
+use fst::Ulen;
+use prefix::raw::Fst;
+use std::fs::File;
 use std::io::prelude::*;
 #[cfg(feature = "mmap")]
 use std::path::Path;
@@ -17,11 +20,13 @@ impl PrefixSet {
     // these are lifted from upstream Set
     #[cfg(feature = "mmap")]
     pub unsafe fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, FstError> {
-        raw::Fst::from_path(path).map(PrefixSet)
+        let mut buf = vec![];
+        File::open(path).unwrap().read_to_end(&mut buf).unwrap();
+        Fst::new(buf).map(PrefixSet)
     }
 
     pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, FstError> {
-        raw::Fst::from_bytes(bytes).map(PrefixSet)
+        Fst::new(bytes).map(PrefixSet)
     }
 
     pub fn from_iter<T, I>(iter: I) -> Result<Self, FstError>
@@ -38,29 +43,12 @@ impl PrefixSet {
         Stream::new(self.0.stream())
     }
 
-    pub fn len(&self) -> usize {
+    pub fn len(&self) -> Ulen {
         self.0.len()
     }
 
     pub fn as_fst(&self) -> &raw::Fst {
         &self.0
-    }
-}
-
-// Also from Map
-impl fmt::Debug for PrefixSet {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "PrefixSet([")?;
-        let mut stream = self.stream();
-        let mut first = true;
-        while let Some((k, v)) = stream.next() {
-            if !first {
-                write!(f, ", ")?;
-            }
-            first = false;
-            write!(f, "({}, {})", String::from_utf8_lossy(k), v)?;
-        }
-        write!(f, "])")
     }
 }
 
@@ -131,7 +119,7 @@ impl<'s, A: Automaton> Stream<'s, A> {
 }
 
 impl<'a, 's, A: Automaton> Streamer<'a> for Stream<'s, A> {
-    type Item = (&'a [u8], u64);
+    type Item = (FakeArrSlice<'a>, u64);
 
     fn next(&'a mut self) -> Option<Self::Item> {
         self.0.next().map(|(key, out)| (key, out.value()))
