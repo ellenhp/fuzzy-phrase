@@ -5,6 +5,7 @@ use fst::FakeArrSlice;
 use fst::Streamer;
 use fst::Ulen;
 use prefix::raw::Fst;
+use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 #[cfg(feature = "mmap")]
@@ -51,6 +52,25 @@ impl PrefixSet {
         &self.0
     }
 }
+
+// // Also from Map
+// impl fmt::Debug for PrefixSet {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         write!(f, "PrefixSet([")?;
+//         let mut stream = self.stream();
+//         let mut first = true;
+//         while let Some((k, v)) = stream.next() {
+//             if !first {
+//                 write!(f, ", ")?;
+//             }
+//             first = false;
+//             let mut buf = vec![];
+//             k.read(&mut buf).unwrap();
+//             write!(f, "({}, {})", String::from_utf8_lossy(&buf), v)?;
+//         }
+//         write!(f, "])")
+//     }
+// }
 
 pub struct PrefixSetBuilder<W> {
     builder: raw::Builder<W>,

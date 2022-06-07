@@ -7,7 +7,7 @@ use std::cmp::{min, Ordering};
 use std::error::Error;
 use std::fs;
 use std::fs::File;
-use std::io::{BufReader, BufWriter};
+use std::io::{BufReader, BufWriter, Read};
 use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 #[cfg(feature = "mmap")]
 use std::path::{Path, PathBuf};
@@ -48,7 +48,12 @@ impl FuzzyMap {
     #[cfg(feature = "mmap")]
     pub unsafe fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, FstError> {
         let file_start = path.as_ref();
-        let fst = raw::Fst::from_path(file_start.with_extension("fst"))?;
+        let mut buf = vec![];
+        File::open(file_start.with_extension("fst"))
+            .unwrap()
+            .read_to_end(&mut buf)
+            .unwrap();
+        let fst = raw::Fst::new(buf)?;
         let mf_reader = BufReader::new(fs::File::open(file_start.with_extension("msg"))?);
         let id_list: SerializableIdList =
             Deserialize::deserialize(&mut Deserializer::new(mf_reader)).unwrap();

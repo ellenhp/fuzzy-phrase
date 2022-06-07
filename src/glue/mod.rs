@@ -3,7 +3,7 @@ use std::collections::{hash_map, BTreeMap};
 use std::error::Error;
 use std::fmt::Debug;
 use std::fs;
-use std::io::{BufReader, BufWriter, Error as IoError, ErrorKind as IoErrorKind};
+use std::io::{BufReader, BufWriter, Error as IoError, ErrorKind as IoErrorKind, Read};
 use std::iter;
 use std::path::{Path, PathBuf};
 
@@ -344,8 +344,10 @@ impl FuzzyPhraseSet {
         let mut word_list = Vec::<String>::with_capacity(prefix_set.len() as usize);
         {
             let mut stream = prefix_set.stream();
-            while let Some((word, _id)) = stream.next() {
-                word_list.push(String::from_utf8(word.to_owned())?);
+            while let Some((mut word, _id)) = stream.next() {
+                let mut buf = vec![];
+                word.read(&mut buf).unwrap();
+                word_list.push(String::from_utf8(buf)?);
             }
         }
 
