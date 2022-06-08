@@ -1,7 +1,6 @@
 extern crate byteorder;
 extern crate fst;
 extern crate itertools;
-extern crate memmap;
 extern crate regex;
 extern crate rustc_hash;
 

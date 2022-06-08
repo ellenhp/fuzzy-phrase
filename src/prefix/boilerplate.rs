@@ -8,7 +8,7 @@ use prefix::raw::Fst;
 use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
-#[cfg(feature = "mmap")]
+#[cfg(feature = "fs")]
 use std::path::Path;
 
 // pretty much everything in this file is copied from either upstream fst::Set or upstream
@@ -19,7 +19,7 @@ pub struct PrefixSet(raw::Fst);
 
 impl PrefixSet {
     // these are lifted from upstream Set
-    #[cfg(feature = "mmap")]
+    #[cfg(feature = "fs")]
     pub unsafe fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, FstError> {
         let mut buf = vec![];
         File::open(path).unwrap().read_to_end(&mut buf).unwrap();

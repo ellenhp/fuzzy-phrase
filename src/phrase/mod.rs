@@ -4,7 +4,7 @@ pub mod util;
 use fst::FakeArrSlice;
 use fst::Ulen;
 use std::io;
-#[cfg(feature = "mmap")]
+#[cfg(feature = "fs")]
 use std::{fs::File, io::Read, path::Path};
 
 use byteorder::{BigEndian, ReadBytesExt};
@@ -769,7 +769,7 @@ impl PhraseSet {
         Fst::new(bytes).map(PhraseSet)
     }
 
-    #[cfg(feature = "mmap")]
+    #[cfg(feature = "fs")]
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, fst::Error> {
         let mut buf = vec![];
         File::open(path).unwrap().read_to_end(&mut buf).unwrap();

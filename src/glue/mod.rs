@@ -288,6 +288,7 @@ impl<'a, 'b> PartialEq<FuzzyMatchResult> for FuzzyWindowResult {
 }
 
 impl FuzzyPhraseSet {
+    #[cfg(feature = "fs")]
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         // the path of a fuzzy phrase set is a directory that has all the subcomponents in it at predictable URLs
         // the prefix graph and phrase graph are each single-file FSTs; the fuzzy graph is multiple files so we

@@ -9,7 +9,7 @@ use std::fs;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Read};
 use std::io::{Error as IoError, ErrorKind as IoErrorKind};
-#[cfg(feature = "mmap")]
+#[cfg(feature = "fs")]
 use std::path::{Path, PathBuf};
 
 use fuzzy::util::multi_modified_damlev_hint;
@@ -45,7 +45,7 @@ impl PartialOrd for FuzzyMapLookupResult {
 }
 
 impl FuzzyMap {
-    #[cfg(feature = "mmap")]
+    #[cfg(feature = "fs")]
     pub unsafe fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, FstError> {
         let file_start = path.as_ref();
         let mut buf = vec![];
