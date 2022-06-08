@@ -346,7 +346,7 @@ impl FuzzyPhraseSet {
             let mut stream = prefix_set.stream();
             while let Some((mut word, _id)) = stream.next() {
                 let mut buf = vec![];
-                word.read(&mut buf).unwrap();
+                word.read_to_end(&mut buf).unwrap();
                 word_list.push(String::from_utf8(buf)?);
             }
         }
