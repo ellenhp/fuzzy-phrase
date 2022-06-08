@@ -9,9 +9,11 @@ use std::path::{Path, PathBuf};
 
 use fst::raw::Output;
 use fst::Streamer;
+use js_sys::Array;
 use regex;
 use rustc_hash::FxHashMap;
 use serde_json;
+use wasm_bindgen::prelude::*;
 
 use fuzzy::{FuzzyMap, FuzzyMapBuilder};
 use phrase::query::QueryWord;
@@ -34,6 +36,7 @@ pub struct WordReplacement {
 }
 
 #[derive(Default, Debug)]
+#[wasm_bindgen]
 pub struct FuzzyPhraseSetBuilder {
     // order doesn't matter for this one because we'll renumber it anyway
     phrases: FxHashMap<Vec<u32>, u32>,
@@ -66,6 +69,34 @@ impl Default for FuzzyPhraseSetMetadata {
             max_edit_distance: 1,
             word_replacements: vec![],
         }
+    }
+}
+
+#[wasm_bindgen]
+impl FuzzyPhraseSetBuilder {
+    #[wasm_bindgen(js_name = new)]
+    pub fn new_js(path: String) -> FuzzyPhraseSetBuilder {
+        return FuzzyPhraseSetBuilder::new(Path::new(&path)).expect("Call from JS must succeed");
+    }
+
+    #[wasm_bindgen(js_name = insert)]
+    pub fn insert_js(&mut self, phrase: Array) {
+        let mut strings: Vec<String> = phrase
+            .to_vec()
+            .iter()
+            .map(|js_value| js_value.as_string().expect("Phrase must only be strings"))
+            .collect();
+        self.insert(&strings).expect("Insert from js must succeed");
+    }
+
+    #[wasm_bindgen(js_name = loadWordReplacements)]
+    pub fn load_word_replacements_js(&mut self, replacements: Array) {
+        let mut replacement_vec = replacements.to_vec().iter().map(|obj| WordReplacement {
+            from: js_sys::Reflect::get(obj, &"from".into()).expect("Need 'from'").as_string().expect("Words must only be strings"),
+            to: js_sys::Reflect::get(obj, &"to".into()).expect("Need 'to'").as_string().expect("Words must only be strings"),
+        }).collect();
+        self.load_word_replacements(replacement_vec)
+            .expect("Load replacements from js must succeed");
     }
 }
 

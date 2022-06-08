@@ -1,8 +1,10 @@
 extern crate byteorder;
 extern crate fst;
 extern crate itertools;
+extern crate js_sys;
 extern crate regex;
 extern crate rustc_hash;
+extern crate wasm_bindgen;
 
 extern crate serde;
 #[macro_use]
