@@ -25,7 +25,7 @@ fn insert_phrases_memory() {
     let mut stream = phrase_set.into_stream();
     while let Some(mut key) = stream.next() {
         let mut buf = vec![];
-        key.0.read(&mut buf).unwrap();
+        key.0.read_to_end(&mut buf).unwrap();
         keys.push(buf);
     }
     assert_eq!(
@@ -66,7 +66,7 @@ fn insert_phrases_file() {
     let mut stream = phrase_set.into_stream();
     while let Some(mut key) = stream.next() {
         let mut buf = vec![];
-        key.0.read(&mut buf).unwrap();
+        key.0.read_to_end(&mut buf).unwrap();
         keys.push(buf);
     }
     assert_eq!(
