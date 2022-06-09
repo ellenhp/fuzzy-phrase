@@ -4,6 +4,7 @@ extern crate itertools;
 extern crate js_sys;
 extern crate regex;
 extern crate rustc_hash;
+extern crate stable_deref_trait;
 extern crate wasm_bindgen;
 
 extern crate serde;
@@ -30,3 +31,5 @@ pub use phrase::PhraseSet;
 pub use phrase::PhraseSetBuilder;
 
 pub mod glue;
+
+mod io;

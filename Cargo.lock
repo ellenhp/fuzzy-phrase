@@ -436,6 +436,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "stable_deref_trait",
  "strsim",
  "tempfile",
  "test_utils",
@@ -1228,6 +1229,12 @@ checksum = "b97fcaeba89edba30f044a10c6a3cc39df9c3f17d7cd829dd1446cab35f890e0"
 dependencies = [
  "maybe-uninit",
 ]
+
+[[package]]
+name = "stable_deref_trait"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "strsim"
