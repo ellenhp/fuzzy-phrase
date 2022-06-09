@@ -1,3 +1,8 @@
+extern crate wasm_bindgen;
+
+use js_sys::JsString;
+use js_sys::Number;
+use js_sys::Object;
 use std::cmp::Ord;
 use std::collections::{hash_map, BTreeMap};
 use std::error::Error;
@@ -36,7 +41,6 @@ pub struct WordReplacement {
 }
 
 #[derive(Default, Debug)]
-#[wasm_bindgen]
 pub struct FuzzyPhraseSetBuilder {
     // order doesn't matter for this one because we'll renumber it anyway
     phrases: FxHashMap<Vec<u32>, u32>,
@@ -72,14 +76,11 @@ impl Default for FuzzyPhraseSetMetadata {
     }
 }
 
-#[wasm_bindgen]
 impl FuzzyPhraseSetBuilder {
-    #[wasm_bindgen(js_name = new)]
     pub fn new_js(path: String) -> FuzzyPhraseSetBuilder {
         return FuzzyPhraseSetBuilder::new(Path::new(&path)).expect("Call from JS must succeed");
     }
 
-    #[wasm_bindgen(js_name = insert)]
     pub fn insert_js(&mut self, phrase: Array) {
         let mut strings: Vec<String> = phrase
             .to_vec()
@@ -89,12 +90,21 @@ impl FuzzyPhraseSetBuilder {
         self.insert(&strings).expect("Insert from js must succeed");
     }
 
-    #[wasm_bindgen(js_name = loadWordReplacements)]
     pub fn load_word_replacements_js(&mut self, replacements: Array) {
-        let mut replacement_vec = replacements.to_vec().iter().map(|obj| WordReplacement {
-            from: js_sys::Reflect::get(obj, &"from".into()).expect("Need 'from'").as_string().expect("Words must only be strings"),
-            to: js_sys::Reflect::get(obj, &"to".into()).expect("Need 'to'").as_string().expect("Words must only be strings"),
-        }).collect();
+        let mut replacement_vec = replacements
+            .to_vec()
+            .iter()
+            .map(|obj| WordReplacement {
+                from: js_sys::Reflect::get(obj, &"from".into())
+                    .expect("Need 'from'")
+                    .as_string()
+                    .expect("Words must only be strings"),
+                to: js_sys::Reflect::get(obj, &"to".into())
+                    .expect("Need 'to'")
+                    .as_string()
+                    .expect("Words must only be strings"),
+            })
+            .collect();
         self.load_word_replacements(replacement_vec)
             .expect("Load replacements from js must succeed");
     }
@@ -275,6 +285,7 @@ impl FuzzyPhraseSetBuilder {
     }
 }
 
+#[wasm_bindgen]
 pub struct FuzzyPhraseSet {
     prefix_set: PrefixSet,
     phrase_set: PhraseSet,
@@ -315,6 +326,282 @@ impl<'a, 'b> PartialEq<FuzzyMatchResult> for FuzzyWindowResult {
         self.edit_distance == other.edit_distance
             && self.phrase == other.phrase
             && self.phrase_id_range == other.phrase_id_range
+    }
+}
+
+#[wasm_bindgen]
+impl FuzzyPhraseSet {
+    #[wasm_bindgen(js_name=from_path)]
+    pub fn from_path_js(p: String) -> FuzzyPhraseSet {
+        FuzzyPhraseSet::from_path(Path::new(&p)).unwrap()
+    }
+
+    #[wasm_bindgen(js_name=can_fuzzy_match)]
+    pub fn can_fuzzy_match_js(&self, word: String) -> bool {
+        self.can_fuzzy_match(word.as_str())
+    }
+
+    #[wasm_bindgen(js_name=contains)]
+    pub fn contains_js(&self, phrase: Array, ending_type: u8) -> bool {
+        let mut phrase_vec = vec![];
+        for i in 0..phrase.length() {
+            phrase_vec.push(phrase.get(i).as_string().unwrap());
+        }
+        self.contains(
+            &phrase_vec,
+            match ending_type {
+                0 => EndingType::NonPrefix,
+                1 => EndingType::AnyPrefix,
+                2..=u8::MAX => EndingType::WordBoundaryPrefix,
+            },
+        )
+        .unwrap()
+    }
+
+    #[wasm_bindgen(js_name=fuzzy_match)]
+    pub fn fuzzy_match_js(
+        &self,
+        phrase: Array,
+        max_word_dist: u8,
+        max_phrase_dist: u8,
+        ending_type: u8,
+    ) -> Array {
+        let mut phrase_vec = vec![];
+        for i in 0..phrase.length() {
+            phrase_vec.push(phrase.get(i).as_string().unwrap());
+        }
+        let matches = self
+            .fuzzy_match(
+                &phrase_vec,
+                max_word_dist,
+                max_phrase_dist,
+                match ending_type {
+                    0 => EndingType::NonPrefix,
+                    1 => EndingType::AnyPrefix,
+                    2..=u8::MAX => EndingType::WordBoundaryPrefix,
+                },
+            )
+            .unwrap();
+        let match_array = Array::new();
+        for match_result in matches {
+            let match_object = Object::new();
+            let phrase_array = Array::new();
+            for word in match_result.phrase {
+                phrase_array.push(&JsValue::from_str(word.as_str()));
+            }
+            Object::define_property(&match_object, &JsValue::from_str("phrase"), &phrase_array);
+            Object::define_property(
+                &match_object,
+                &JsValue::from_str("edit_distance"),
+                &JsValue::from(match_result.edit_distance).into(),
+            );
+            Object::define_property(
+                &match_object,
+                &JsValue::from_str("ending_type"),
+                &JsValue::from(match match_result.ending_type {
+                    EndingType::NonPrefix => 0,
+                    EndingType::AnyPrefix => 1,
+                    EndingType::WordBoundaryPrefix => 2,
+                })
+                .into(),
+            );
+            Object::define_property(
+                &match_object,
+                &JsValue::from_str("phrase_id_range_lower"),
+                &JsValue::from(match_result.phrase_id_range.0).into(),
+            );
+            Object::define_property(
+                &match_object,
+                &JsValue::from_str("phrase_id_range_upper"),
+                &JsValue::from(match_result.phrase_id_range.1).into(),
+            );
+            match_array.push(&match_object.into());
+        }
+        match_array
+    }
+
+    #[wasm_bindgen(js_name=fuzzy_match_windows)]
+    pub fn fuzzy_match_windows_js(
+        &self,
+        phrase: Array,
+        max_word_dist: u8,
+        max_phrase_dist: u8,
+        ending_type: u8,
+    ) -> Array {
+        let mut phrase_vec = vec![];
+        for i in 0..phrase.length() {
+            phrase_vec.push(phrase.get(i).as_string().unwrap());
+        }
+        let matches = self
+            .fuzzy_match_windows(
+                &phrase_vec,
+                max_word_dist,
+                max_phrase_dist,
+                match ending_type {
+                    0 => EndingType::NonPrefix,
+                    1 => EndingType::AnyPrefix,
+                    2..=u8::MAX => EndingType::WordBoundaryPrefix,
+                },
+            )
+            .unwrap();
+        let match_array = Array::new();
+        for match_result in matches {
+            let match_object = Object::new();
+            let phrase_array = Array::new();
+            for word in match_result.phrase {
+                phrase_array.push(&JsValue::from_str(word.as_str()));
+            }
+            Object::define_property(&match_object, &JsValue::from_str("phrase"), &phrase_array);
+            Object::define_property(
+                &match_object,
+                &JsValue::from_str("edit_distance"),
+                &JsValue::from(match_result.edit_distance).into(),
+            );
+            Object::define_property(
+                &match_object,
+                &JsValue::from_str("ending_type"),
+                &JsValue::from(match match_result.ending_type {
+                    EndingType::NonPrefix => 0,
+                    EndingType::AnyPrefix => 1,
+                    EndingType::WordBoundaryPrefix => 2,
+                })
+                .into(),
+            );
+            Object::define_property(
+                &match_object,
+                &JsValue::from_str("start_position"),
+                &JsValue::from(match_result.start_position).into(),
+            );
+            Object::define_property(
+                &match_object,
+                &JsValue::from_str("phrase_id_range_lower"),
+                &JsValue::from(match_result.phrase_id_range.0).into(),
+            );
+            Object::define_property(
+                &match_object,
+                &JsValue::from_str("phrase_id_range_upper"),
+                &JsValue::from(match_result.phrase_id_range.1).into(),
+            );
+            match_array.push(&match_object.into());
+        }
+        match_array
+    }
+
+    #[wasm_bindgen(js_name=fuzzy_match_multi)]
+    pub fn fuzzy_match_multi_js(
+        &self,
+        phrase_ending_type_pairs: Array,
+        max_word_dist: u8,
+        max_phrase_dist: u8,
+    ) -> Array {
+        let mut phrases = vec![];
+        for i in 0..phrase_ending_type_pairs.length() {
+            let phrase_ending_type_pair = Array::from(&phrase_ending_type_pairs.get(i));
+            let phrase = Array::from(&phrase_ending_type_pair.get(0));
+            let mut phrase_vec = vec![];
+            for i in 0..phrase.length() {
+                phrase_vec.push(phrase.get(i).as_string().unwrap());
+            }
+            let ending_type: u8 = Number::from(phrase_ending_type_pair.get(1)).value_of() as u8;
+            phrases.push((
+                phrase_vec,
+                match ending_type {
+                    0 => EndingType::NonPrefix,
+                    1 => EndingType::AnyPrefix,
+                    2..=u8::MAX => EndingType::WordBoundaryPrefix,
+                },
+            ));
+        }
+        let matches = self
+            .fuzzy_match_multi(&phrases, max_word_dist, max_phrase_dist)
+            .unwrap();
+        let phrase_match_arrays = Array::new();
+        for phrase_result in matches {
+            let match_array = Array::new();
+            for match_result in phrase_result {
+                let match_object = Object::new();
+                let phrase_array = Array::new();
+                for word in match_result.phrase {
+                    phrase_array.push(&JsValue::from_str(word.as_str()));
+                }
+                Object::define_property(&match_object, &JsValue::from_str("phrase"), &phrase_array);
+                Object::define_property(
+                    &match_object,
+                    &JsValue::from_str("edit_distance"),
+                    &JsValue::from(match_result.edit_distance).into(),
+                );
+                Object::define_property(
+                    &match_object,
+                    &JsValue::from_str("ending_type"),
+                    &JsValue::from(match match_result.ending_type {
+                        EndingType::NonPrefix => 0u8,
+                        EndingType::AnyPrefix => 1u8,
+                        EndingType::WordBoundaryPrefix => 2u8,
+                    })
+                    .into(),
+                );
+                Object::define_property(
+                    &match_object,
+                    &JsValue::from_str("phrase_id_range_lower"),
+                    &JsValue::from(match_result.phrase_id_range.0).into(),
+                );
+                Object::define_property(
+                    &match_object,
+                    &JsValue::from_str("phrase_id_range_upper"),
+                    &JsValue::from(match_result.phrase_id_range.1).into(),
+                );
+                match_array.push(&match_object.into());
+            }
+            phrase_match_arrays.push(&match_array);
+        }
+        phrase_match_arrays
+    }
+
+    #[wasm_bindgen(js_name=get_by_phrase_id)]
+    pub fn get_by_phrase_id_js(&self, id: Number) -> Array {
+        match self.get_by_phrase_id(id.value_of() as u32) {
+            Ok(Some(words)) => {
+                let word_array = Array::new();
+                for word in words {
+                    word_array.push(&JsValue::from_str(word.as_str()));
+                }
+                word_array
+            }
+            Ok(None) | Err(_) => Array::new(),
+        }
+    }
+
+    #[wasm_bindgen(js_name=get_prefix_bins)]
+    pub fn get_prefix_bins_js(&self, max_bin_size: Number) -> Array {
+        let bin_array = Array::new();
+        for bin in self
+            .get_prefix_bins(max_bin_size.value_of() as usize)
+            .unwrap()
+        {
+            let bin_object = Object::new();
+            Object::define_property(
+                &bin_object,
+                &JsValue::from_str("first"),
+                &JsValue::from(bin.first.value()).into(),
+            );
+            Object::define_property(
+                &bin_object,
+                &JsValue::from_str("last"),
+                &JsValue::from(bin.last.value()).into(),
+            );
+            Object::define_property(
+                &bin_object,
+                &JsValue::from_str("size"),
+                &JsValue::from(bin.size).into(),
+            );
+            Object::define_property(
+                &bin_object,
+                &JsValue::from_str("prefix"),
+                &JsValue::from(bin.prefix).into(),
+            );
+            bin_array.push(&bin_object.into());
+        }
+        bin_array
     }
 }
 

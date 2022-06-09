@@ -11,6 +11,7 @@ use std::io::{BufReader, BufWriter, Read};
 use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 #[cfg(feature = "fs")]
 use std::path::{Path, PathBuf};
+use wasm_bindgen::prelude::*;
 
 use fuzzy::util::multi_modified_damlev_hint;
 

@@ -1,3 +1,5 @@
+extern crate wasm_bindgen;
+
 use std::collections::HashSet;
 pub mod map;
 mod util;
