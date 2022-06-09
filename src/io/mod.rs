@@ -1,9 +1,9 @@
 mod file_slice;
 mod owned_bytes;
 
+use crate::io::file_slice::FileHandle;
+use crate::io::file_slice::FileSlice;
 use fst::Ulen;
-use io::file_slice::FileHandle;
-use io::file_slice::FileSlice;
 use stable_deref_trait::StableDeref;
 use std::convert::TryInto;
 use std::mem;
@@ -140,8 +140,8 @@ impl fmt::Debug for OwnedBytes {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     // We truncate the bytes in order to make sure the debug string
     // is not too long.
-    let bytes_truncated: &[u8] = if self.len() > 1000 {
-      &self.as_slice()[..1000]
+    let bytes_truncated: &[u8] = if self.len() > 10 {
+      &self.as_slice()[..10]
     } else {
       self.as_slice()
     };

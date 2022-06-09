@@ -1,6 +1,6 @@
+use crate::io::OwnedBytes;
 pub use fst::FakeArr;
 use fst::Ulen;
-use io::OwnedBytes;
 use stable_deref_trait::StableDeref;
 
 use std::fmt::Debug;
@@ -210,7 +210,7 @@ impl HasLen for FileSlice {
 #[cfg(test)]
 mod tests {
     use super::{FileHandle, FileSlice};
-    use io::HasLen;
+    use crate::io::HasLen;
     use std::io;
 
     #[test]

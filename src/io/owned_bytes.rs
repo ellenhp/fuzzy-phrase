@@ -130,7 +130,7 @@ impl fmt::Debug for OwnedBytes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // We truncate the bytes in order to make sure the debug string
         // is not too long.
-        let bytes_truncated: &[u8] = if self.len() > 8 {
+        let bytes_truncated: &[u8] = if self.len() > 10 {
             &self.as_slice()[..10]
         } else {
             self.as_slice()
@@ -160,7 +160,8 @@ impl PartialEq<str> for OwnedBytes {
 }
 
 impl<'a, T: ?Sized> PartialEq<&'a T> for OwnedBytes
-where OwnedBytes: PartialEq<T>
+where
+    OwnedBytes: PartialEq<T>,
 {
     fn eq(&self, other: &&'a T) -> bool {
         *self == **other

@@ -8,8 +8,8 @@ extern crate tempfile;
 extern crate test_utils;
 
 use super::*;
-use glue::fuzz_tests::rand::Rng;
-use glue::fuzz_tests::test_utils::*;
+use crate::glue::fuzz_tests::rand::Rng;
+use crate::glue::fuzz_tests::test_utils::*;
 use itertools;
 use std::fs;
 use std::io::Read;
@@ -39,7 +39,7 @@ lazy_static! {
     };
     static ref SET: FuzzyPhraseSet = {
         lazy_static::initialize(&TMP_TO_FINAL);
-        FuzzyPhraseSet::from_path(&DIR.path()).unwrap()
+        tokio_test::block_on(FuzzyPhraseSet::from_path(&DIR.path())).unwrap()
     };
 }
 

@@ -67,7 +67,7 @@ lazy_static! {
             builder.insert_str(phrase).unwrap();
         }
         builder.finish().unwrap();
-        FuzzyPhraseSet::from_path(&DIR.path()).unwrap()
+        tokio_test::block_on(FuzzyPhraseSet::from_path(&DIR.path())).unwrap()
     };
 }
 

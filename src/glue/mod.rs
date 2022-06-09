@@ -20,11 +20,11 @@ use rustc_hash::FxHashMap;
 use serde_json;
 use wasm_bindgen::prelude::*;
 
-use fuzzy::{FuzzyMap, FuzzyMapBuilder};
-use phrase::query::QueryWord;
-use phrase::util::PhraseSetError;
-use phrase::{PhraseSet, PhraseSetBuilder};
-use prefix::{PrefixSet, PrefixSetBuilder};
+use crate::fuzzy::{FuzzyMap, FuzzyMapBuilder};
+use crate::phrase::query::QueryWord;
+use crate::phrase::util::PhraseSetError;
+use crate::phrase::{PhraseSet, PhraseSetBuilder};
+use crate::prefix::{PrefixSet, PrefixSetBuilder};
 
 use std::{fmt, str};
 #[macro_use]
@@ -332,8 +332,8 @@ impl<'a, 'b> PartialEq<FuzzyMatchResult> for FuzzyWindowResult {
 #[wasm_bindgen]
 impl FuzzyPhraseSet {
     #[wasm_bindgen(js_name=from_path)]
-    pub fn from_path_js(p: String) -> FuzzyPhraseSet {
-        FuzzyPhraseSet::from_path(Path::new(&p)).unwrap()
+    pub async fn from_path_js(p: String) -> FuzzyPhraseSet {
+        FuzzyPhraseSet::from_path(Path::new(&p)).await.unwrap()
     }
 
     #[wasm_bindgen(js_name=can_fuzzy_match)]
@@ -607,7 +607,7 @@ impl FuzzyPhraseSet {
 
 impl FuzzyPhraseSet {
     #[cfg(feature = "fs")]
-    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+    pub async fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         // the path of a fuzzy phrase set is a directory that has all the subcomponents in it at predictable URLs
         // the prefix graph and phrase graph are each single-file FSTs; the fuzzy graph is multiple files so we
         // pass in a their shared prefix to the fuzzy graph constructor
@@ -652,7 +652,7 @@ impl FuzzyPhraseSet {
                 "Prefix FST does not exist",
             )));
         }
-        let prefix_set = unsafe { PrefixSet::from_path(&prefix_path) }?;
+        let prefix_set = PrefixSet::from_path(&prefix_path).await?;
 
         // the fuzzy graph needs to be able to go from ID to actual word
         // one idea was to look this up from the prefix graph, which can do backwards lookups
@@ -665,7 +665,20 @@ impl FuzzyPhraseSet {
             let mut stream = prefix_set.stream();
             while let Some((mut word, _id)) = stream.next() {
                 let mut buf = vec![];
-                word.read_to_end(&mut buf).unwrap();
+                let mut onebytearr = [0u8];
+                loop {
+                    match word.read(&mut onebytearr).await {
+                        Ok(len) => {
+                            if len == 0 {
+                                break;
+                            }
+                            buf.push(onebytearr[0]);
+                        }
+                        Err(_) => {
+                            break;
+                        }
+                    }
+                }
                 word_list.push(String::from_utf8(buf)?);
             }
         }
@@ -677,10 +690,10 @@ impl FuzzyPhraseSet {
                 "Phrase FST does not exist",
             )));
         }
-        let phrase_set = unsafe { PhraseSet::from_path(&phrase_path) }?;
+        let phrase_set = PhraseSet::from_path(&phrase_path).await?;
 
         let fuzzy_path = directory.join(Path::new("fuzzy"));
-        let fuzzy_map = unsafe { FuzzyMap::from_path(&fuzzy_path) }?;
+        let fuzzy_map = FuzzyMap::from_path(&fuzzy_path).await?;
 
         // the word replacements in the metadata are string to string, but we want ID to ID for
         // the sake of speed, so use the prefix map to go from the former to the latter and put
@@ -1557,7 +1570,7 @@ mod basic_tests {
         };
         static ref SET: FuzzyPhraseSet = {
             lazy_static::initialize(&TMP_TO_FINAL);
-            FuzzyPhraseSet::from_path(&DIR.path()).unwrap()
+            tokio_test::block_on(FuzzyPhraseSet::from_path(&DIR.path())).unwrap()
         };
     }
 
@@ -2014,7 +2027,7 @@ mod basic_tests {
             builder.insert_str("100 e st").unwrap();
             builder.finish().unwrap();
 
-            FuzzyPhraseSet::from_path(&DIRECTORY.path()).unwrap()
+            tokio_test::block_on(FuzzyPhraseSet::from_path(&DIRECTORY.path())).unwrap()
         };
     }
 

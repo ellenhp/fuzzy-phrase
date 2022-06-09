@@ -765,15 +765,15 @@ impl PhraseSet {
     }
 
     /// Create from a raw byte sequence, which must be written by `PhraseSetBuilder`.
-    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, fst::Error> {
-        Fst::new(bytes).map(PhraseSet)
+    pub async fn from_bytes(bytes: Vec<u8>) -> Result<Self, fst::Error> {
+        Fst::new(bytes).await.map(PhraseSet)
     }
 
     #[cfg(feature = "fs")]
-    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, fst::Error> {
+    pub async fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, fst::Error> {
         let mut buf = vec![];
         File::open(path).unwrap().read_to_end(&mut buf).unwrap();
-        Fst::new(buf).map(PhraseSet)
+        Fst::new(buf).await.map(PhraseSet)
     }
 }
 

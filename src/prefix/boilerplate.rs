@@ -1,11 +1,10 @@
+use crate::prefix::raw::Fst;
 use fst::automaton::{AlwaysMatch, Automaton};
 use fst::raw;
 use fst::Error as FstError;
 use fst::FakeArrSlice;
 use fst::Streamer;
 use fst::Ulen;
-use prefix::raw::Fst;
-use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 #[cfg(feature = "fs")]
@@ -20,24 +19,24 @@ pub struct PrefixSet(raw::Fst);
 impl PrefixSet {
     // these are lifted from upstream Set
     #[cfg(feature = "fs")]
-    pub unsafe fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, FstError> {
+    pub async fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, FstError> {
         let mut buf = vec![];
         File::open(path).unwrap().read_to_end(&mut buf).unwrap();
-        Fst::new(buf).map(PrefixSet)
+        Fst::new(buf).await.map(PrefixSet)
     }
 
-    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, FstError> {
-        Fst::new(bytes).map(PrefixSet)
+    pub async fn from_bytes(bytes: Vec<u8>) -> Result<Self, FstError> {
+        Fst::new(bytes).await.map(PrefixSet)
     }
 
-    pub fn from_iter<T, I>(iter: I) -> Result<Self, FstError>
+    pub async fn from_iter<T, I>(iter: I) -> Result<Self, FstError>
     where
         T: AsRef<[u8]>,
         I: IntoIterator<Item = T>,
     {
         let mut builder = PrefixSetBuilder::memory();
         builder.extend_iter(iter)?;
-        PrefixSet::from_bytes(builder.into_inner()?)
+        PrefixSet::from_bytes(builder.into_inner()?).await
     }
 
     pub fn stream(&self) -> Stream {

@@ -1,7 +1,7 @@
 use fst::raw::{Fst, Node, Output};
 use itertools::Itertools;
 
-use phrase::util::three_byte_decode;
+use crate::phrase::util::three_byte_decode;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PrefixBin {

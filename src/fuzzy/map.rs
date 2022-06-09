@@ -13,7 +13,7 @@ use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 use std::path::{Path, PathBuf};
 use wasm_bindgen::prelude::*;
 
-use fuzzy::util::multi_modified_damlev_hint;
+use crate::fuzzy::util::multi_modified_damlev_hint;
 
 static MULTI_FLAG: u64 = 1 << 63;
 static MULTI_MASK: u64 = !(1 << 63);
@@ -47,14 +47,14 @@ impl PartialOrd for FuzzyMapLookupResult {
 
 impl FuzzyMap {
     #[cfg(feature = "fs")]
-    pub unsafe fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, FstError> {
+    pub async fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, FstError> {
         let file_start = path.as_ref();
         let mut buf = vec![];
         File::open(file_start.with_extension("fst"))
             .unwrap()
             .read_to_end(&mut buf)
             .unwrap();
-        let fst = raw::Fst::new(buf)?;
+        let fst = raw::Fst::new(buf).await?;
         let mf_reader = BufReader::new(fs::File::open(file_start.with_extension("msg"))?);
         let id_list: SerializableIdList =
             Deserialize::deserialize(&mut Deserializer::new(mf_reader)).unwrap();
@@ -297,7 +297,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     use super::*;
-    use fuzzy::util::multi_modified_damlev;
+    use crate::fuzzy::util::multi_modified_damlev;
 
     lazy_static! {
         static ref DATA: [&'static str; 4] = [
@@ -324,14 +324,14 @@ mod tests {
             let file_start = dir.path().join("fuzzy");
             FuzzyMapBuilder::build_from_iter(&file_start, WORDS.iter().cloned(), 1).unwrap();
 
-            unsafe { FuzzyMap::from_path(&file_start).unwrap() }
+            tokio_test::block_on(FuzzyMap::from_path(&file_start)).unwrap()
         };
         static ref MAP_D2: FuzzyMap = {
             let dir = tempfile::tempdir().unwrap();
             let file_start = dir.path().join("fuzzy");
             FuzzyMapBuilder::build_from_iter(&file_start, WORDS.iter().cloned(), 2).unwrap();
 
-            unsafe { FuzzyMap::from_path(&file_start).unwrap() }
+            tokio_test::block_on(FuzzyMap::from_path(&file_start)).unwrap()
         };
     }
 

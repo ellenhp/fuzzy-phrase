@@ -44,7 +44,7 @@ lazy_static! {
             .map(|(i, w)| (w.to_string(), i as u64)).collect::<Vec<(String, u64)>>()
     };
     static ref SET: PrefixSet = {
-        PrefixSet::from_iter(WORDS.iter()).expect("tried to create prefix set")
+        tokio_test::block_on(PrefixSet::from_iter(WORDS.iter())).expect("tried to create prefix set")
     };
 }
 

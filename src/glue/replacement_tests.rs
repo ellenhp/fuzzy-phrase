@@ -41,7 +41,7 @@ lazy_static! {
         builder.insert_str("100 fortenberry ave").unwrap();
 
         builder.finish().unwrap();
-        FuzzyPhraseSet::from_path(&DIRECTORY.path()).unwrap()
+        tokio_test::block_on(FuzzyPhraseSet::from_path(&DIRECTORY.path())).unwrap()
     };
 }
 

@@ -19,13 +19,26 @@ fn insert_phrases_memory() {
     build.insert(&[561_528u32, 1u32, 61_528_u32]).unwrap();
     let bytes = build.into_inner().unwrap();
 
-    let phrase_set = PhraseSet::from_bytes(bytes).unwrap();
+    let phrase_set = tokio_test::block_on(PhraseSet::from_bytes(bytes)).unwrap();
 
     let mut keys = vec![];
     let mut stream = phrase_set.into_stream();
     while let Some(mut key) = stream.next() {
         let mut buf = vec![];
-        key.0.read_to_end(&mut buf).unwrap();
+        let mut onebytearr = [0u8];
+        loop {
+            match tokio_test::block_on(key.0.read(&mut onebytearr)) {
+                Ok(len) => {
+                    if len == 0 {
+                        break;
+                    }
+                    buf.push(onebytearr[0]);
+                }
+                Err(_) => {
+                    break;
+                }
+            }
+        }
         keys.push(buf);
     }
     assert_eq!(
@@ -60,13 +73,26 @@ fn insert_phrases_file() {
     build.insert(&[561_528u32, 1u32, 61_528_u32]).unwrap();
     build.finish().unwrap();
 
-    let phrase_set = unsafe { PhraseSet::from_path("/tmp/phrase-set.fst") }.unwrap();
+    let phrase_set = tokio_test::block_on(PhraseSet::from_path("/tmp/phrase-set.fst")).unwrap();
 
     let mut keys = vec![];
     let mut stream = phrase_set.into_stream();
     while let Some(mut key) = stream.next() {
         let mut buf = vec![];
-        key.0.read_to_end(&mut buf).unwrap();
+        let mut onebytearr = [0u8];
+        loop {
+            match tokio_test::block_on(key.0.read(&mut onebytearr)) {
+                Ok(len) => {
+                    if len == 0 {
+                        break;
+                    }
+                    buf.push(onebytearr[0]);
+                }
+                Err(_) => {
+                    break;
+                }
+            }
+        }
         keys.push(buf);
     }
     assert_eq!(
@@ -99,7 +125,7 @@ fn contains_query() {
     build.insert(&[561_528u32, 1u32, 61_528_u32]).unwrap();
     let bytes = build.into_inner().unwrap();
 
-    let phrase_set = PhraseSet::from_bytes(bytes).unwrap();
+    let phrase_set = tokio_test::block_on(PhraseSet::from_bytes(bytes)).unwrap();
 
     let words = vec![
         QueryWord::new_full(1u32, 0),
@@ -136,7 +162,7 @@ fn contains_prefix_query() {
     build.insert(&[561_528u32, 1u32, 61_528_u32]).unwrap();
     let bytes = build.into_inner().unwrap();
 
-    let phrase_set = PhraseSet::from_bytes(bytes).unwrap();
+    let phrase_set = tokio_test::block_on(PhraseSet::from_bytes(bytes)).unwrap();
 
     let words = vec![
         QueryWord::new_full(1u32, 0),
@@ -188,7 +214,7 @@ fn contains_prefix_range() {
         .insert(&[1u32, 61_528_u32, three_byte_decode(&[6u8, 5u8, 8u8])])
         .unwrap();
     let bytes = build.into_inner().unwrap();
-    let phrase_set = PhraseSet::from_bytes(bytes).unwrap();
+    let phrase_set = tokio_test::block_on(PhraseSet::from_bytes(bytes)).unwrap();
 
     let words = vec![
         QueryWord::new_full(1u32, 0),
@@ -316,7 +342,7 @@ fn contains_prefix_nested_range() {
         .insert(&[1u32, 61_528_u32, three_byte_decode(&[6u8, 5u8, 8u8])])
         .unwrap();
     let bytes = build.into_inner().unwrap();
-    let phrase_set = PhraseSet::from_bytes(bytes).unwrap();
+    let phrase_set = tokio_test::block_on(PhraseSet::from_bytes(bytes)).unwrap();
 
     let words = vec![
         QueryWord::new_full(1u32, 0),
@@ -516,7 +542,7 @@ lazy_static! {
             builder.insert(&id_phrase).unwrap();
         }
         let bytes = builder.into_inner().unwrap();
-        PhraseSet::from_bytes(bytes).unwrap()
+        tokio_test::block_on(PhraseSet::from_bytes(bytes)).unwrap()
     };
 }
 
